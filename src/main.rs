@@ -66,29 +66,20 @@ fn print_guess(guess: &String, matches: &Vec<(u8, Color)>) {
 }
 fn check_guess(awnser: &String, word: &String) -> Vec<(u8, Color)> {
     let mut matches: Vec<(u8, Color)> = Vec::new();
-    //we copy the original guess and awnser and remove the matches from this value so that we can search for yellows
-    let mut trimmed_guess = word.clone();
-    let mut trimmed_awnser = awnser.clone();
+    //the guess and awnser but with the matches replaced with placeholders
+    let mut index_guess = word.clone();
+    let mut index_awnser = awnser.clone();
     //*searches for green matches
     //we use a loop so that i can be decramented
-    let mut i = 0;
-    //becuse we mutate the awnser and consequntly change it's length, we save the offset we changed the length by
-    let mut offset = 0;
-    loop {
-        //checks if the word is finished
-        if i >= trimmed_awnser.len() {
-            break;
-        }
-        if trimmed_guess.chars().nth(i) == trimmed_awnser.chars().nth(i) {
+    for i in 0..index_awnser.len() {
+        if index_guess.chars().nth(i) == index_awnser.chars().nth(i) {
             //adds the match
-            matches.push((i as u8 + offset, Color::Green));
-            //removes the letter from the check
-            trimmed_guess.remove(i);
-            trimmed_awnser.remove(i);
-            //updates teh offset
-            offset += 1
-        } else {
-            i += 1;
+            matches.push((i as u8, Color::Green));
+            //replaces the match with placeholders
+            index_awnser.remove(i);
+            index_awnser.insert(i as usize, '_');
+            index_guess.remove(i);
+            index_guess.insert(i as usize, '_');
         }
     }
     //checks if the word was guessed
@@ -97,37 +88,24 @@ fn check_guess(awnser: &String, word: &String) -> Vec<(u8, Color)> {
     }
     //*searched for yellow matches
     //resets the offset for the yellows
-    offset = 0;
-    for i in 0..trimmed_guess.len() {
-        //the current letter
-        let found = trimmed_guess.chars().nth(i - offset as usize);
-        match found {
-            Some(letter) => {
-                if trimmed_awnser.contains(letter) {
-                    //a letter might already be green and this flag checks that
-                    let mut taken = false;
-                    for j in &matches {
-                        //looks for an identical index
-                        if j.0 == i as u8 {
-                            taken = true;
-                            break;
-                        }
-                    }
-                    if taken {
-                        continue;
-                    }
-                    //adds the match
-                    matches.push((i as u8+offset, Color::Yellow));
-                    //removes the letter from the check
-                    trimmed_guess.remove(i - offset as usize);
-                    //searches for the letter and removes it
-                    trimmed_awnser
-                        .remove(trimmed_awnser.chars().position(|c| c == letter).unwrap());
-                    //updates the offset
-                    offset += 1;
-                }
-            }
-            None => continue,
+    for i in 0..index_guess.len() {
+        //the current letter that was guessed
+        let found = index_guess.chars().nth(i as usize).unwrap();
+        //skips the placeholders
+        if found=='_'{
+            continue;
+        }
+        if index_awnser.contains(found) {
+            //the position in the awnser that correlates to the found
+            let found_position = index_awnser.chars().position(|c| c == found).unwrap();
+            //adds the match
+            matches.push((i as u8, Color::Yellow));
+            index_guess.remove(i);
+            index_guess.insert(i, '_');
+            //searches for the letter and replaces it with _
+            let index = index_awnser.chars().position(|c| c == found).unwrap();
+            index_awnser.remove(index);
+            index_awnser.insert(index, '_');
         }
     }
     return matches;
@@ -147,26 +125,24 @@ fn main() -> io::Result<()> {
     let mut guesses: Vec<(String, Vec<(u8, Color)>)> = Vec::new();
     println!("\x1B[2J\x1B[1;1H");
     //*game loop
-    let mut i =0;
+    let mut i = 0;
     //we use a loop so that we can conditionolize the index
     loop {
-        if i>=5{
+        if i >= 6 {
             break;
         }
         //*finds matches
         //gets the guess
         let mut guess = String::new();
         io::stdin().read_line(&mut guess)?;
-        //removes the \n at the end of the lien
-        guess.pop();
-        //removes the \r at the end of the lien
-        guess.pop();
+        //ensures the string is five letters long
+        guess.truncate(5);
         //clears the screen
         print!("\x1B[2J\x1B[1;1H");
         //checks if the word is a valid guess
         let valid = valid_guess(&guess)?;
         if valid {
-            i+=1;
+            i += 1;
             //adds the guess to the Vec
             guesses.push((guess.clone(), check_guess(awnser, &guess)));
         }
