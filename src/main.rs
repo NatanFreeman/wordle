@@ -33,7 +33,7 @@ fn valid_guess(guess: &String) -> io::Result<bool> {
     }
     return Ok(false);
 }
-fn print_guess(guess: &String, matches: &Vec<(u8, Color)>) {
+fn print_guess(guess: &String, matches: &Vec<(u8, Color)>, available_letters: &mut String) {
     //loops through the letter of the user's guess
     for i in 0..guess.len() {
         //this flag dictate wether or not a match was found
@@ -57,7 +57,10 @@ fn print_guess(guess: &String, matches: &Vec<(u8, Color)>) {
         }
         //prints the letter normally if no match was found
         if !found {
-            print!("{}", guess.clone().chars().nth(i).unwrap());
+            let letter = guess.clone().chars().nth(i).unwrap();
+            //removes the letter from the available letters as it is not in the awnser
+            *available_letters = available_letters.replace(letter, "");
+            print!("{}", letter);
             io::stdout().flush().unwrap();
         }
         io::stdout().flush().unwrap();
@@ -86,13 +89,13 @@ fn check_guess(awnser: &String, word: &String) -> Vec<(u8, Color)> {
     if matches.len() == awnser.len() {
         return matches;
     }
-    //*searched for yellow matches
+    //*searches for yellow matches
     //resets the offset for the yellows
     for i in 0..index_guess.len() {
         //the current letter that was guessed
         let found = index_guess.chars().nth(i as usize).unwrap();
         //skips the placeholders
-        if found=='_'{
+        if found == '_' {
             continue;
         }
         if index_awnser.contains(found) {
@@ -126,6 +129,7 @@ fn main() -> io::Result<()> {
     println!("\x1B[2J\x1B[1;1H");
     //*game loop
     let mut i = 0;
+    let mut available_letters = "abcdefghikjlmnopqrstuvwxyz".to_string();
     //we use a loop so that we can conditionolize the index
     loop {
         if i >= 6 {
@@ -148,8 +152,13 @@ fn main() -> io::Result<()> {
         }
         //prints the guesses
         for i in &guesses {
-            print_guess(&i.0, &i.1);
+            print_guess(&i.0, &i.1, &mut available_letters);
         }
+        //prints the available letters
+        for i in available_letters.chars() {
+            print!("{}, ", i);
+        }
+        println!("");
         if !valid {
             println!("Not in word list");
         }
