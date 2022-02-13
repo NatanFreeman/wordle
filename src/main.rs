@@ -136,7 +136,7 @@ fn main() -> io::Result<()> {
     let awnser = lines.get(number).unwrap();
     //the guesses the user has said so far
     let mut guesses: Vec<(String, Vec<(u8, Color)>)> = Vec::new();
-    print!("\x1B[2J\x1B[1;1H");
+    println!("\x1B[2J\x1B[1;1H");
     //*game loop
     for _ in 0..5 {
         //*finds matches
