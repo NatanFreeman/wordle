@@ -15,14 +15,23 @@ enum Color {
     Yellow,
     Green,
 }
-fn valid_guess(guess: &String)->bool{
+fn valid_guess(guess: &String) -> io::Result<bool> {
     //fast check
-    if guess.len()!=5{
-        return false;
+    if guess.len() != 5 {
+        return Ok(false);
     }
+    //*exracts the words
+    let file = File::open(Path::new("valid_words.txt"))?;
+    let reader = BufReader::new(&file);
+    //gets the contents as a Vec
+    let lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
     //*loops through the valid words
-
-    return true;
+    for word in lines {
+        if &word == guess {
+            return Ok(true);
+        }
+    }
+    return Ok(false);
 }
 fn print_guess(guess: &String, matches: &Vec<(u8, Color)>) {
     //loops through the letter of the user's guess
@@ -108,7 +117,7 @@ fn check_guess(awnser: &String, word: &String) -> Vec<(u8, Color)> {
                         continue;
                     }
                     //adds the match
-                    matches.push((i as u8, Color::Yellow));
+                    matches.push((i as u8+offset, Color::Yellow));
                     //removes the letter from the check
                     trimmed_guess.remove(i - offset as usize);
                     //searches for the letter and removes it
@@ -138,21 +147,35 @@ fn main() -> io::Result<()> {
     let mut guesses: Vec<(String, Vec<(u8, Color)>)> = Vec::new();
     println!("\x1B[2J\x1B[1;1H");
     //*game loop
-    for _ in 0..5 {
+    let mut i =0;
+    //we use a loop so that we can conditionolize the index
+    loop {
+        if i>=5{
+            break;
+        }
         //*finds matches
         //gets the guess
         let mut guess = String::new();
         io::stdin().read_line(&mut guess)?;
         //removes the \n at the end of the lien
         guess.pop();
-        //removes teh \r at the end of the lien
+        //removes the \r at the end of the lien
         guess.pop();
-        //adds the guess to the Vec
-        guesses.push((guess.clone(), check_guess(awnser, &guess)));
-        //clears the screen and prints the guesses
+        //clears the screen
         print!("\x1B[2J\x1B[1;1H");
+        //checks if the word is a valid guess
+        let valid = valid_guess(&guess)?;
+        if valid {
+            i+=1;
+            //adds the guess to the Vec
+            guesses.push((guess.clone(), check_guess(awnser, &guess)));
+        }
+        //prints the guesses
         for i in &guesses {
             print_guess(&i.0, &i.1);
+        }
+        if !valid {
+            println!("Not in word list");
         }
         //win check
         if *guess == *awnser {
