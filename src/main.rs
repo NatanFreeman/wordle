@@ -15,7 +15,47 @@ enum Color {
     Yellow,
     Green,
 }
-fn guess(awnser: &String, word: &String) -> Vec<(u8, Color)> {
+fn valid_guess(guess: &String)->bool{
+    //fast check
+    if guess.len()!=5{
+        return false;
+    }
+    //*loops through the valid words
+
+    return true;
+}
+fn print_guess(guess: &String, matches: &Vec<(u8, Color)>) {
+    //loops through the letter of the user's guess
+    for i in 0..guess.len() {
+        //this flag dictate wether or not a match was found
+        let mut found = false;
+        //look for matches
+        for j in matches {
+            //prints the match with the correct colour
+            if j.0 == i as u8 {
+                //the current letter
+                let letter = String::from(guess.clone().chars().nth(i).unwrap());
+                if j.1 == Color::Green {
+                    print!("{}", letter.green());
+                } else {
+                    print!("{}", letter.yellow());
+                }
+                io::stdout().flush().unwrap();
+                //tells the loop a match was found
+                found = true;
+                break;
+            }
+        }
+        //prints the letter normally if no match was found
+        if !found {
+            print!("{}", guess.clone().chars().nth(i).unwrap());
+            io::stdout().flush().unwrap();
+        }
+        io::stdout().flush().unwrap();
+    }
+    println!("")
+}
+fn check_guess(awnser: &String, word: &String) -> Vec<(u8, Color)> {
     let mut matches: Vec<(u8, Color)> = Vec::new();
     //we copy the original guess and awnser and remove the matches from this value so that we can search for yellows
     let mut trimmed_guess = word.clone();
@@ -56,15 +96,15 @@ fn guess(awnser: &String, word: &String) -> Vec<(u8, Color)> {
             Some(letter) => {
                 if trimmed_awnser.contains(letter) {
                     //a letter might already be green and this flag checks that
-                    let mut taken=false;
-                    for j in &matches{
+                    let mut taken = false;
+                    for j in &matches {
                         //looks for an identical index
-                        if j.0==i as u8{
-                            taken=true;
+                        if j.0 == i as u8 {
+                            taken = true;
                             break;
                         }
                     }
-                    if taken{
+                    if taken {
                         continue;
                     }
                     //adds the match
@@ -72,7 +112,6 @@ fn guess(awnser: &String, word: &String) -> Vec<(u8, Color)> {
                     //removes the letter from the check
                     trimmed_guess.remove(i - offset as usize);
                     //searches for the letter and removes it
-                    println!("{}", letter);
                     trimmed_awnser
                         .remove(trimmed_awnser.chars().position(|c| c == letter).unwrap());
                     //updates the offset
@@ -95,50 +134,31 @@ fn main() -> io::Result<()> {
     let number: usize = rng.gen_range(0..lines.len());
     //the awnser the player will have to guess
     let awnser = lines.get(number).unwrap();
-    println!("{}", awnser);
+    //the guesses the user has said so far
+    let mut guesses: Vec<(String, Vec<(u8, Color)>)> = Vec::new();
+    print!("\x1B[2J\x1B[1;1H");
     //*game loop
     for _ in 0..5 {
         //*finds matches
         //gets the guess
-        let mut bru = String::new();
-        io::stdin().read_line(&mut bru)?;
+        let mut guess = String::new();
+        io::stdin().read_line(&mut guess)?;
         //removes the \n at the end of the lien
-        bru.pop();
+        guess.pop();
         //removes teh \r at the end of the lien
-        bru.pop();
-        let matches = guess(awnser, &bru);
-        //*prints results
-        //loops through the letter of the user's guess
-        for i in 0..awnser.len() {
-            //this flag dictate wether or not a match was found
-            let mut found = false;
-            //look for matches
-            for j in &matches {
-                //prints the match with the correct colour
-                if j.0 == i as u8 {
-                    //the current letter
-                    let letter = String::from(bru.clone().chars().nth(i).unwrap());
-                    if j.1==Color::Green
-                    {
-                        print!("{}", letter.green());
-                    }
-                    else{
-                        print!("{}", letter.yellow());
-                    }
-                    io::stdout().flush().unwrap();
-                    //tells the loop a match was found
-                    found = true;
-                    break;
-                }
-            }
-            //prints the letter normally if no match was found
-            if !found {
-                print!("{}", bru.clone().chars().nth(i).unwrap());
-                io::stdout().flush().unwrap();
-            }
-            io::stdout().flush().unwrap();
+        guess.pop();
+        //adds the guess to the Vec
+        guesses.push((guess.clone(), check_guess(awnser, &guess)));
+        //clears the screen and prints the guesses
+        print!("\x1B[2J\x1B[1;1H");
+        for i in &guesses {
+            print_guess(&i.0, &i.1);
         }
-        println!("")
+        //win check
+        if *guess == *awnser {
+            break;
+        }
     }
+    println!("The awnser was {}", awnser);
     Ok(())
 }
