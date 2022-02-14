@@ -9,6 +9,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Write;
 use std::path::Path;
+use webster;
 //the diffrent colors a letter in the guess can be. Anything that isn't a match can be assumed as white.
 #[derive(Debug, PartialEq)]
 enum Color {
@@ -141,6 +142,7 @@ fn main() -> io::Result<()> {
         io::stdin().read_line(&mut guess)?;
         //ensures the string is five letters long
         guess.truncate(5);
+        guess = guess.to_lowercase();
         //clears the screen
         print!("\x1B[2J\x1B[1;1H");
         //checks if the word is a valid guess
@@ -167,6 +169,10 @@ fn main() -> io::Result<()> {
             break;
         }
     }
-    println!("The awnser was {}", awnser);
+    let definition = webster::dictionary(awnser);
+    match definition {
+        Some(message) => println!("The awnser was {}\ndifinition: {}", awnser, message),
+        None => println!("The awnser was {}", awnser),
+    };
     Ok(())
 }
