@@ -171,7 +171,7 @@ fn main() -> io::Result<()> {
     }
     let definition = webster::dictionary(awnser);
     match definition {
-        Some(message) => println!("The awnser was {}\ndifinition: {}", awnser, message),
+        Some(message) => println!("The awnser was {}\ndefinition: {}", awnser, message),
         None => println!("The awnser was {}", awnser),
     };
     Ok(())
