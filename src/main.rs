@@ -1,136 +1,82 @@
 /*A wordle program*/
-use colored::*;
 use rand::{thread_rng, Rng};
-use std::cmp::PartialEq;
 use std::fs;
-use std::fs::File;
 use std::io;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::io::Write;
-use std::path::Path;
 use webster;
-//the diffrent colors a letter in the guess can be. Anything that isn't a match can be assumed as white.
-#[derive(Debug, PartialEq)]
-enum Color {
-    Yellow,
-    Green,
-}
-fn valid_guess(guess: &String) -> io::Result<bool> {
-    //fast check
-    if guess.len() != 5 {
-        return Ok(false);
-    }
-    //*exracts the words
-    let file = File::open(Path::new("valid_words.txt"))?;
-    let reader = BufReader::new(&file);
-    //gets the contents as a Vec
-    let lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
-    //*loops through the valid words
-    for word in lines {
-        if &word == guess {
-            return Ok(true);
-        }
-    }
-    return Ok(false);
-}
-fn print_guess(guess: &String, matches: &Vec<(u8, Color)>, available_letters: &mut String) {
-    //loops through the letter of the user's guess
-    for i in 0..guess.len() {
-        //this flag dictate wether or not a match was found
-        let mut found = false;
-        //look for matches
-        for j in matches {
-            //prints the match with the correct colour
-            if j.0 == i as u8 {
-                //the current letter
-                let letter = String::from(guess.clone().chars().nth(i).unwrap());
-                if j.1 == Color::Green {
-                    print!("{}", letter.green());
-                } else {
-                    print!("{}", letter.yellow());
+mod wordle;
+//returns all the possible answers based off the guesses
+fn possible_answers(
+    guesses: &Vec<(String, Vec<(u8, wordle::Color)>)>,
+    available_letters: &Vec<(char, (i8, bool))>,
+) -> io::Result<Vec<String>> {
+    let answers = wordle::get_words("valid_words.txt".to_string())?;
+    //the possible words that have been found
+    let mut possible_found: Vec<String> = Vec::new();
+    //checks a word in the accepted words file
+    for answer in answers {
+        //this flag says wether or not the answer is the possible solution
+        let mut possible = true;
+        //makes sure the letters in the answer are available
+        for i in answer.chars() {
+            //the position of the letter in teh available letters. This is found by assuming the Vec to be alphabetical
+            let letter_position = (i as u8 - 'a' as u8) as usize;
+            //checks if the number of matches may be bigger than the number listed
+            if available_letters[letter_position].1 .1 == true {
+                if answer.matches(i).count() != available_letters[letter_position].1 .0 as usize {
+                    possible = false;
+                    break;
                 }
-                io::stdout().flush().unwrap();
-                //tells the loop a match was found
-                found = true;
-                break;
+            } else {
+                if answer.matches(i).count() < available_letters[letter_position].1 .0 as usize {
+                    possible = false;
+                    break;
+                }
+            }
+            if !possible {
+                continue;
+            }
+            for guess in guesses {
+                //makes sure that the possible answer wasn't guessed
+                if guess.0 == answer {
+                    possible = false;
+                    break;
+                }
+                //matches the patterns
+                for i in &guess.1 {
+                    if i.1 == wordle::Color::Green {
+                        if answer.chars().nth(i.0 as usize).unwrap()
+                            != guess.0.chars().nth(i.0 as usize).unwrap()
+                        {
+                            possible = false;
+                        }
+                    } else if i.1 == wordle::Color::Yellow {
+                        if !answer.contains(guess.0.chars().nth(i.0 as usize).unwrap()) {
+                            possible = false;
+                        }
+                    }
+                }
             }
         }
-        //prints the letter normally if no match was found
-        if !found {
-            let letter = guess.clone().chars().nth(i).unwrap();
-            //removes the letter from the available letters as it is not in the awnser
-            *available_letters = available_letters.replace(letter, "");
-            print!("{}", letter);
-            io::stdout().flush().unwrap();
-        }
-        io::stdout().flush().unwrap();
-    }
-    println!("")
-}
-fn check_guess(awnser: &String, word: &String) -> Vec<(u8, Color)> {
-    let mut matches: Vec<(u8, Color)> = Vec::new();
-    //the guess and awnser but with the matches replaced with placeholders
-    let mut index_guess = word.clone();
-    let mut index_awnser = awnser.clone();
-    //*searches for green matches
-    //we use a loop so that i can be decramented
-    for i in 0..index_awnser.len() {
-        if index_guess.chars().nth(i) == index_awnser.chars().nth(i) {
-            //adds the match
-            matches.push((i as u8, Color::Green));
-            //replaces the match with placeholders
-            index_awnser.remove(i);
-            index_awnser.insert(i as usize, '_');
-            index_guess.remove(i);
-            index_guess.insert(i as usize, '_');
-        }
-    }
-    //checks if the word was guessed
-    if matches.len() == awnser.len() {
-        return matches;
-    }
-    //*searches for yellow matches
-    //resets the offset for the yellows
-    for i in 0..index_guess.len() {
-        //the current letter that was guessed
-        let found = index_guess.chars().nth(i as usize).unwrap();
-        //skips the placeholders
-        if found == '_' {
+        if !possible {
             continue;
         }
-        if index_awnser.contains(found) {
-            //the position in the awnser that correlates to the found
-            let found_position = index_awnser.chars().position(|c| c == found).unwrap();
-            //adds the match
-            matches.push((i as u8, Color::Yellow));
-            index_guess.remove(i);
-            index_guess.insert(i, '_');
-            //searches for the letter and replaces it with _
-            let index = index_awnser.chars().position(|c| c == found).unwrap();
-            index_awnser.remove(index);
-            index_awnser.insert(index, '_');
-        }
+        possible_found.push(answer.clone());
     }
-    return matches;
+    Ok(possible_found)
 }
 fn main() -> io::Result<()> {
-    //*exracts the words
-    let file = File::open(Path::new("words.txt"))?;
-    let reader = BufReader::new(&file);
-    //gets the contents as a Vec
-    let lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
+    let words = wordle::get_words("words.txt".to_string())?;
     //*chooses a word
     let mut rng = rand::thread_rng();
-    let number: usize = rng.gen_range(0..lines.len());
-    //the awnser the player will have to guess
-    let awnser = lines.get(number).unwrap();
+    let number: usize = rng.gen_range(0..words.len());
+    //the answer the player will have to guess
+    let answer = words.get(number).unwrap();
+    println!("{}", answer);
     //the guesses the user has said so far
-    let mut guesses: Vec<(String, Vec<(u8, Color)>)> = Vec::new();
+    let mut guesses: Vec<(String, Vec<(u8, wordle::Color)>)> = Vec::new();
     println!("\x1B[2J\x1B[1;1H");
     //*game loop
     let mut i = 0;
-    let mut available_letters = "abcdefghikjlmnopqrstuvwxyz".to_string();
     //we use a loop so that we can conditionolize the index
     loop {
         if i >= 6 {
@@ -146,33 +92,69 @@ fn main() -> io::Result<()> {
         //clears the screen
         print!("\x1B[2J\x1B[1;1H");
         //checks if the word is a valid guess
-        let valid = valid_guess(&guess)?;
+        let valid = wordle::valid_guess(&guess)?;
         if valid {
             i += 1;
             //adds the guess to the Vec
-            guesses.push((guess.clone(), check_guess(awnser, &guess)));
+            guesses.push((guess.clone(), wordle::check_guess(answer, &guess)));
         }
+        /*the available letters.
+        available_letters.0 is the letter.
+        available_letters.1.0 is the number of times it can exist
+        available_letters.1.1 is wether or not there can be more of the letter*/
+        let mut available_letters = vec![
+            ('a', (0, false)),
+            ('b', (0, false)),
+            ('c', (0, false)),
+            ('d', (0, false)),
+            ('e', (0, false)),
+            ('f', (0, false)),
+            ('g', (0, false)),
+            ('h', (0, false)),
+            ('i', (0, false)),
+            ('k', (0, false)),
+            ('j', (0, false)),
+            ('l', (0, false)),
+            ('m', (0, false)),
+            ('n', (0, false)),
+            ('o', (0, false)),
+            ('p', (0, false)),
+            ('q', (0, false)),
+            ('r', (0, false)),
+            ('s', (0, false)),
+            ('t', (0, false)),
+            ('u', (0, false)),
+            ('v', (0, false)),
+            ('w', (0, false)),
+            ('x', (0, false)),
+            ('y', (0, false)),
+            ('z', (0, false)),
+        ];
         //prints the guesses
         for i in &guesses {
-            print_guess(&i.0, &i.1, &mut available_letters);
+            wordle::print_guess(&i.0, &i.1, &mut available_letters);
         }
-        //prints the available letters
-        for i in available_letters.chars() {
-            print!("{}, ", i);
-        }
-        println!("");
         if !valid {
             println!("Not in word list");
         }
-        //win check
-        if *guess == *awnser {
-            break;
+        //prints the possible answers
+        let answers = possible_answers(&guesses, &available_letters)?;
+        if answers.len() > 0 {
+            print!("Possible answers: ");
+            for i in answers {
+                print!("{} ", i);
+            }
+            println!("");
+            //win check
+            if *guess == *answer {
+                break;
+            }
         }
     }
-    let definition = webster::dictionary(awnser);
+    let definition = webster::dictionary(answer);
     match definition {
-        Some(message) => println!("The awnser was {}\ndefinition: {}", awnser, message),
-        None => println!("The awnser was {}", awnser),
+        Some(message) => println!("The answer was {}\ndefinition: {}", answer, message),
+        None => println!("The answer was {}", answer),
     };
     Ok(())
 }
