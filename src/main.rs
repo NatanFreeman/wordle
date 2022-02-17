@@ -12,6 +12,9 @@ fn possible_answers(
     let answers = wordle::get_words("valid_words.txt".to_string())?;
     //the possible words that have been found
     let mut possible_found: Vec<String> = Vec::new();
+    if guesses.len() == 0 {
+        return Ok(possible_found);
+    }
     //checks a word in the accepted words file
     for answer in answers {
         //this flag says wether or not the answer is the possible solution
@@ -53,6 +56,14 @@ fn possible_answers(
                         if !answer.contains(guess.0.chars().nth(i.0 as usize).unwrap()) {
                             possible = false;
                         }
+                        //makes sure the letter is in the wrong place
+                        else {
+                            if answer.chars().nth(i.0 as usize).unwrap()
+                                == guess.0.chars().nth(i.0 as usize).unwrap()
+                            {
+                                possible = false;
+                            }
+                        }
                     }
                 }
             }
@@ -89,6 +100,10 @@ fn main() -> io::Result<()> {
         //ensures the string is five letters long
         guess.truncate(5);
         guess = guess.to_lowercase();
+        //win check
+        if *guess == *answer {
+            break;
+        }
         //clears the screen
         print!("\x1B[2J\x1B[1;1H");
         //checks if the word is a valid guess
@@ -145,10 +160,6 @@ fn main() -> io::Result<()> {
                 print!("{} ", i);
             }
             println!("");
-            //win check
-            if *guess == *answer {
-                break;
-            }
         }
     }
     let definition = webster::dictionary(answer);
