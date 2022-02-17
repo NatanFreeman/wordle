@@ -100,10 +100,6 @@ fn main() -> io::Result<()> {
         //ensures the string is five letters long
         guess.truncate(5);
         guess = guess.to_lowercase();
-        //win check
-        if *guess == *answer {
-            break;
-        }
         //clears the screen
         print!("\x1B[2J\x1B[1;1H");
         //checks if the word is a valid guess
@@ -148,6 +144,10 @@ fn main() -> io::Result<()> {
         //prints the guesses
         for i in &guesses {
             wordle::print_guess(&i.0, &i.1, &mut available_letters);
+        }
+        //win check
+        if *guess == *answer {
+            break;
         }
         if !valid {
             println!("Not in word list");
