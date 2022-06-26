@@ -2,8 +2,14 @@
 name = "wordle"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors=["Natan"]
+keywords=["Wordle", "cli", "game"]
+categories = ["Games", ""]
+readme = "README.md"
+repository = "https://github.com/NatanFreeman/wordle"
+license = "Apache-2.0"
+license-file = "LICENCE"
+description="A simple command line Wordle implementation written in Rust."
 
 [dependencies]
 rand = "0.8.4"
