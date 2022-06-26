@@ -1,7 +1,5 @@
 use colored::*;
-use rand::{thread_rng, Rng};
 use std::cmp::PartialEq;
-use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
@@ -85,7 +83,7 @@ pub fn print_guess(
         for j in matches {
             //prints the match with the correct colour
             if j.0 == i as u8 {
-                current_letters[letter_position].1.0 += 1;
+                current_letters[letter_position].1 .0 += 1;
                 //makes sure a match for the letter was not already found
                 if j.1 == Color::Green {
                     print!("{}", letter.green());
@@ -102,7 +100,7 @@ pub fn print_guess(
         if !found {
             let letter = guess.clone().chars().nth(i).unwrap();
             //removes the letter from the available letters as it is not in the answer
-            current_letters[letter_position].1.1 = true;
+            current_letters[letter_position].1 .1 = true;
             print!("{}", letter);
             io::stdout().flush().unwrap();
         }
@@ -110,8 +108,11 @@ pub fn print_guess(
     }
     //*updates the available letters
     for i in 0..current_letters.len() {
-        //only updates the value if the letter times is not absolute and more matches were found 
-        if !available_letters[i].1.1 &&( available_letters[i].1.0<current_letters[i].1.0||current_letters[i].1.1==true) {
+        //only updates the value if the letter times is not absolute and more matches were found
+        if !available_letters[i].1 .1
+            && (available_letters[i].1 .0 < current_letters[i].1 .0
+                || current_letters[i].1 .1 == true)
+        {
             available_letters[i] = current_letters[i];
         }
     }
@@ -149,8 +150,6 @@ pub fn check_guess(answer: &String, word: &String) -> Vec<(u8, Color)> {
             continue;
         }
         if index_answer.contains(found) {
-            //the position in the answer that correlates to the found
-            let found_position = index_answer.chars().position(|c| c == found).unwrap();
             //adds the match
             matches.push((i as u8, Color::Yellow));
             index_guess.remove(i);

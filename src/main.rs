@@ -1,6 +1,5 @@
 /*A wordle program*/
-use rand::{thread_rng, Rng};
-use std::fs;
+use rand::Rng;
 use std::io;
 use webster;
 mod wordle;
@@ -154,7 +153,7 @@ fn main() -> io::Result<()> {
         }
         //prints the possible answers
         let answers = possible_answers(&guesses, &available_letters)?;
-        if answers.len() > 0 {
+        if answers.len() > 0 && valid {
             print!("Possible answers: ");
             for i in answers {
                 print!("{} ", i);
